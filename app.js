@@ -18,8 +18,12 @@ app.get("/update/:token", (req, res) => {
 
   // get ip address
   const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-
   const port = req.socket.remotePort;
+
+  console.log({
+    ip,
+    port,
+  });
 
   const users = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const user = users.find((user) => user.token === token);
@@ -51,8 +55,16 @@ app.all("/get/:userId", (req, res) => {
     return res.status(400).json({ message: "User not found", success: false });
   }
 
+  const userAddress = `http://${user.ip}${
+    user.port ? `:${Number(user.port)}` : ""
+  }}`;
+
+  console.log({
+    userAddress,
+  });
+
   // forward request to user ip address
-  res.redirect(`http://${user.ip}${user.port ? `:${user.port}` : ""}}`);
+  res.redirect(userAddress);
 });
 
 app.post("/register", async (req, res) => {
