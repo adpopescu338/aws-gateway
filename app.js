@@ -19,6 +19,8 @@ app.get("/update/:token", (req, res) => {
   // get ip address
   const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
+  const port = req.socket.remotePort;
+
   const users = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const user = users.find((user) => user.token === token);
 
@@ -28,9 +30,17 @@ app.get("/update/:token", (req, res) => {
 
   // update user
 
-  user.ip = ip;
+  if (user.ip != ip || user.port != port) {
+    user.ip = ip;
+    user.port = port;
 
-  fs.writeFileSync("./data.json", JSON.stringify(users));
+    fs.writeFileSync("./data.json", JSON.stringify(users));
+    res
+      .status(200)
+      .json({ message: "User updated successfully", success: true });
+  } else {
+    res.status(200).json({ message: "User already updated", success: true });
+  }
 });
 
 app.all("/get/:userId", (req, res) => {
@@ -42,21 +52,21 @@ app.all("/get/:userId", (req, res) => {
   }
 
   // forward request to user ip address
-  res.redirect(`http://${user.ip}:3000`);
+  res.redirect(`http://${user.ip}${user.port ? `:${user.port}` : ""}}`);
 });
 
 app.post("/register", async (req, res) => {
   const { email } = req.body;
   console.log({
-    email
-})
-  try{
+    email,
+  });
+  try {
     await sendOtpEmail(email);
-  }catch(e){
-    console.log(e)
+  } catch (e) {
+    console.log(e);
     return res.status(400).json({ message: e.message, success: false });
   }
-  
+
   res.status(200).json({ message: "OTP sent successfully", success: true });
 });
 
@@ -67,7 +77,7 @@ app.post("/verify", (req, res) => {
   if (!user) {
     return res.status(400).json({ message: "User not found", success: false });
   }
-  if (user.otp !== otp) {
+  if (user.otp != otp) {
     return res.status(400).json({ message: "Invalid OTP", success: false });
   }
   res.status(200).json({

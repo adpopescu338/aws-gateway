@@ -88,22 +88,24 @@
 
       const tokensDiv = document.getElementById("tokens");
 
+      const port = window.location.port ? `:${window.location.port}` : "";
+
       tokensDiv.innerHTML = `
             <p>
-                Your private token is: ${tokens?.privateToken}
+                Your private token is: ${tokens.data.privateToken}
                 <br />
-                Your public token is: ${tokens?.publicToken}
+                Your public token is: ${tokens.data.publicToken}
             </p>
             <br>
             <p>
-                You can now send a request to ${window.location.protocol}//${window.location.hostname}/update/${tokens.privateToken} at whatever interval you want (I recommend 5 minutes) to keep your ip address alive.
+                You can now send a request to ${window.location.protocol}//${window.location.hostname}${port}/update/${tokens.data.privateToken} at whatever interval you want (I recommend 5 minutes) to keep your ip address alive.
                 <br>
                 To setup a cronjob you can type crontab -e and add the following line: <br>
-                */5 * * * * curl ${window.location.protocol}//${window.location.hostname}/update/${tokens.privateToken}
+                */5 * * * * curl ${window.location.protocol}//${window.location.hostname}${port}/update/${tokens.data.privateToken}
                 <br>
                 <br>
 
-                For webhooks or whatever, you can provide ${window.location.protocol}//${window.location.hostname}/get/${tokens.publicToken} as the url to send the request to.
+                For webhooks or whatever, you can provide ${window.location.protocol}//${window.location.hostname}${port}/get/${tokens.data.publicToken} as the url to send the request to.
 
                 The request will be forwarded to your ip address.
             </p>

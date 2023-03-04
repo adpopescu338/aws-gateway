@@ -2,6 +2,8 @@ const fs = require("fs");
 const crypto = require("crypto");
 const sgMail = require("@sendgrid/mail");
 
+require("dotenv").config();
+
 const MAX_RESETS = 5;
 
 const sendOtpEmail = async (email) => {
@@ -28,6 +30,7 @@ const sendOtpEmail = async (email) => {
       resetDate: new Date(),
       token,
       ip: "",
+      port: "",
       resets: 0,
     };
 
@@ -50,7 +53,11 @@ const sendOtpEmail = async (email) => {
   };
 
   try {
-    await sgMail.send(msg);
+    if (process.env.NODE_ENV === "development") {
+      console.log(msg);
+    } else {
+      await sgMail.send(msg);
+    }
   } catch (e) {
     throw new Error("Error sending email");
   }
