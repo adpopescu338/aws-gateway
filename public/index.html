@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gateway</title>
+  </head>
+  <body>
+    <h2 style="text-align: center">Gateway</h2>
+
+    <p>
+      If for some reason you have a dynamic ip address but need a static one
+      (fer example you have your own CI/CD server at home and want github to
+      send you a webhook when you push to your repo) you can use this gateway to
+      get a static ip address.
+
+      <br />
+
+      You need to provide your email address (just to check you're not a bot).
+      <br />
+      Once you insert the OTP sent to your email, you'll get a private and a
+      public token. You have to send a get request here at whatever interval you
+      want (I recommend 5 minutes) to keep your ip address alive. The request
+      must include your private token.
+
+      <br />
+    </p>
+
+    <button id="register-button">Register</button>
+
+    <div id="tokens"></div>
+  </body>
+  <script>
+    const isEmailValid = (email) => {
+      const re =
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+      return re.test(String(email).toLowerCase());
+    };
+
+    const registerButton = document.getElementById("register-button");
+    registerButton.addEventListener("click", () => {
+      const email = prompt("Please enter your email address");
+      if (!isEmailValid(email)) {
+        alert("Invalid email address");
+        return;
+      }
+
+      askOtp(email);
+    });
+
+    const askOtp = async (email) => {
+      const data = await fetch("/register", {
+        method: "POST",
+        body: JSON.stringify({ email: email }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }).then((res) => res.json());
+
+      if (!data?.success) {
+        alert(data?.message || "An error occurred");
+        return;
+      }
+
+      const otp = prompt("Please enter the OTP sent to your email address");
+
+      if (!otp) {
+        alert("OTP is required");
+        return;
+      }
+
+      const tokens = await fetch("/verify", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email,
+          otp: otp,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }).then((res) => res.json());
+
+      if (!tokens?.success) {
+        alert(tokens?.message || "An error occurred");
+        return;
+      }
+
+      const tokensDiv = document.getElementById("tokens");
+
+      tokensDiv.innerHTML = `
+            <p>
+                Your private token is: ${tokens?.privateToken}
+                <br />
+                Your public token is: ${tokens?.publicToken}
+            </p>
+            <br>
+            <p>
+                You can now send a request to ${window.location.protocol}//${window.location.hostname}/update/${tokens.privateToken} at whatever interval you want (I recommend 5 minutes) to keep your ip address alive.
+                <br>
+                To setup a cronjob you can type crontab -e and add the following line: <br>
+                */5 * * * * curl ${window.location.protocol}//${window.location.hostname}/update/${tokens.privateToken}
+                <br>
+                <br>
+
+                For webhooks or whatever, you can provide ${window.location.protocol}//${window.location.hostname}/get/${tokens.publicToken} as the url to send the request to.
+
+                The request will be forwarded to your ip address.
+            </p>
+        `;
+    };
+  </script>
+</html>

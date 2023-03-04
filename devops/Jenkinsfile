@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('2255ea73-6c59-4ead-b350-a05ba2022fcc')
+        REGISTRY = 'adpopescu3382/devops-playground'
+        IMAGE_TAG = "gateway"
+        CONTAINER_NAME = "$IMAGE_TAG-container"
+        PORT = 3000
+    }
+
+    stages {
+ 
+
+        stage('Build') {
+            steps {
+                echo "Building image $REGISTRY:$IMAGE_TAG"
+                // pass base image as build arg to Dockerfile
+                sh "docker build -t $REGISTRY:$IMAGE_TAG . --build-arg PORT=$PORT"
+            }
+        }
+
+        stage('Push to registry') {
+            steps {
+                echo 'Deploying....'
+                // docker login
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                // push image to registry
+                sh "docker push $REGISTRY:$IMAGE_TAG"
+            }
+        }
+
+
+    }
+    post { 
+        always { 
+            cleanWs()
+            sh 'docker logout'
+            // stop and remove container
+            sh "if docker ps | grep '$CONTAINER_NAME'; then docker stop $CONTAINER_NAME; fi"
+            sh "if docker ps -a | grep '$CONTAINER_NAME'; then docker rm $CONTAINER_NAME; fi"
+
+            // remove image
+            sh "if docker images | grep '$REGISTRY:$IMAGE_TAG'; then docker rmi $REGISTRY:$IMAGE_TAG; fi"
+        }
+        // TODO:
+        // on failure, send email
+        // on success, send email
+    }
+}
